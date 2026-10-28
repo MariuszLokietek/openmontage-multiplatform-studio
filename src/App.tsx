@@ -11,6 +11,7 @@ import { DeviceSimulator } from './components/DeviceSimulator';
 import { AppleSimulator } from './components/AppleSimulator';
 import { AiDiagnostics } from './components/AiDiagnostics';
 import { UniversalBuildGuide } from './components/UniversalBuildGuide';
+import { GitHubPublishModal } from './components/GitHubPublishModal';
 import { ActiveTab, ApkConfig, ExeConfig, IosConfig, MacConfig, ProjectFile, TargetPlatform } from './types';
 import { sampleOpenMontageStudio } from './utils/sampleProjects';
 import {
@@ -106,6 +107,7 @@ export default function App() {
 
   const [isPackaging, setIsPackaging] = useState(false);
   const [packagingProgress, setPackagingProgress] = useState<{ percent: number; step: string } | null>(null);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
 
   const selectedFile = files.find(f => f.id === selectedFileId) || null;
 
@@ -242,6 +244,7 @@ export default function App() {
         fileCount={files.length}
         isPackaging={isPackaging}
         onPackageClick={handlePackageAndDownload}
+        onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
       />
 
       {/* Main Workspace */}
@@ -346,6 +349,12 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* GitHub Repository Creation & Live Share Modal */}
+      <GitHubPublishModal
+        isOpen={isGitHubModalOpen}
+        onClose={() => setIsGitHubModalOpen(false)}
+      />
     </div>
   );
 }

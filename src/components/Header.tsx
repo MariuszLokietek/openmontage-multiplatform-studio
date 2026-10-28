@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Sparkles, Monitor, Code2, Settings, Terminal, Smartphone, Apple } from 'lucide-react';
+import { Download, Sparkles, Monitor, Code2, Settings, Terminal, Smartphone, Apple, GitBranch } from 'lucide-react';
 import { ActiveTab, TargetPlatform } from '../types';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   fileCount: number;
   isPackaging: boolean;
   onPackageClick: () => void;
+  onOpenGitHubModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   fileCount,
   isPackaging,
   onPackageClick,
+  onOpenGitHubModal,
 }) => {
   const getPlatformLabel = () => {
     switch (targetPlatform) {
@@ -156,8 +158,17 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={onOpenGitHubModal}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700/80 shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            title="Utwórz repozytorium GitHub lub udostępnij aplikację online"
+          >
+            <GitBranch className="w-3.5 h-3.5 text-indigo-400" />
+            <span>GitHub / Udostępnij</span>
+          </button>
+
           <button
             onClick={onPackageClick}
             disabled={isPackaging || fileCount === 0}

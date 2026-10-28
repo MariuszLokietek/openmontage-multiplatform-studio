@@ -93,6 +93,105 @@ Zwróć TYLKO czysty JSON bez znaczników markdown.`;
     }
   });
 
+  // Automated GitHub Repository Creation and Push Endpoint
+  app.post('/api/github-publish', async (req, res) => {
+    try {
+      const { token, repoName = 'openmontage-studio', isPrivate = false, description = 'OpenMontage MultiPlatform Studio - Kompilator aplikacji na Windows (.EXE), Android (.APK), Mac (.DMG) i iOS (.IPA)' } = req.body;
+
+      if (!token || !token.trim()) {
+        return res.status(400).json({ error: 'Wymagany jest token Personal Access Token (PAT) z uprawnieniem "repo".' });
+      }
+
+      const cleanToken = token.trim();
+      const cleanRepoName = repoName.trim().replace(/[^a-zA-Z0-9_.-]/g, '-');
+
+      // 1. Verify user with GitHub API
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: {
+          'Authorization': `Bearer ${cleanToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'OpenMontage-Studio'
+        }
+      });
+
+      if (!userRes.ok) {
+        return res.status(401).json({ error: 'Nieprawidłowy token GitHub. Upewnij się, że token posiada uprawnienie "repo".' });
+      }
+
+      const userData = await userRes.json();
+      const username = userData.login;
+
+      // 2. Create the repository on GitHub
+      const createRes = await fetch('https://api.github.com/user/repos', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cleanToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'OpenMontage-Studio'
+        },
+        body: JSON.stringify({
+          name: cleanRepoName,
+          description,
+          private: isPrivate,
+          auto_init: false
+        })
+      });
+
+      let repoData;
+      if (createRes.status === 422) {
+        // Repo already exists, get its details
+        const getRepoRes = await fetch(`https://api.github.com/repos/${username}/${cleanRepoName}`, {
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'OpenMontage-Studio'
+          }
+        });
+        if (getRepoRes.ok) {
+          repoData = await getRepoRes.json();
+        } else {
+          return res.status(422).json({ error: `Repozytorium "${cleanRepoName}" już istnieje i nie masz do niego dostępu.` });
+        }
+      } else if (!createRes.ok) {
+        const errJson = await createRes.json();
+        return res.status(createRes.status).json({ error: errJson.message || 'Błąd tworzenia repozytorium na GitHubie.' });
+      } else {
+        repoData = await createRes.json();
+      }
+
+      // 3. Configure git remote and push
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      const authenticatedRemoteUrl = `https://x-access-token:${cleanToken}@github.com/${username}/${cleanRepoName}.git`;
+
+      await execAsync('git config user.name "OpenMontage Studio"');
+      await execAsync(`git config user.email "${userData.email || 'studio@openmontage.org'}"`);
+      await execAsync('git remote remove origin || true');
+      await execAsync(`git remote add origin ${authenticatedRemoteUrl}`);
+      await execAsync('git branch -M main');
+      await execAsync('git add .');
+      await execAsync('git commit -m "Aktualizacja: OpenMontage MultiPlatform Studio (Windows, Android, Mac, iOS)" || true');
+      await execAsync('git push -u origin main --force');
+
+      // Remove credentials from remote url after push for security
+      await execAsync(`git remote set-url origin https://github.com/${username}/${cleanRepoName}.git`);
+
+      res.json({
+        success: true,
+        repoUrl: repoData.html_url,
+        cloneUrl: repoData.clone_url,
+        owner: username,
+        repoName: cleanRepoName
+      });
+    } catch (err: unknown) {
+      console.error('Błąd publikacji na GitHub:', err);
+      res.status(500).json({ error: (err as Error)?.message || 'Wystąpił nieoczekiwany błąd podczas wypychania do GitHuba.' });
+    }
+  });
+
   // Setup Vite dev server or static middleware
   const isProd = process.env.NODE_ENV === 'production';
 
