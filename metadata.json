@@ -1,0 +1,6 @@
+{
+  "name": "OpenMontage MultiPlatform Studio",
+  "description": "Kompiluj i pakuj projekty OpenMontage do aplikacji natywnych na Windows (.EXE), Android (.APK), Apple Mac (.DMG) oraz iPhone/iPad (.IPA / Xcode).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
